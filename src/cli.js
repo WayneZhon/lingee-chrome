@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { readBridgeInfo, DEFAULT_PORT, HOME, AUDIT_FILE, LOG_FILE, ALLOWLIST_FILE, ensureHome } from './lib/paths.js';
+import { readBridgeInfo, DEFAULT_PORT, HOME, AUDIT_FILE, LOG_FILE, ALLOWLIST_FILE, CONFIRM_FILE, ensureHome } from './lib/paths.js';
 import { VERSION } from './lib/version.js';
 import { compat, compatNote } from '../extension/compat.js';
 
@@ -170,6 +170,37 @@ switch (cmd) {
     break;
   }
 
+  case 'confirm': {
+    // 敏感动作二次确认闸（第二刀）。开启后，agent 单次执行删除/发布/提交/转账一类的
+    //   动作前会弹窗让用户点头（裁决在扩展里，agent 够不着）。付款永远独立生效，与此无关。
+    //   默认关闭，要用户主动 `confirm on` 才生效（升级不打断现有 agent）。
+    const sub = argv[1];
+    const readCfg = () => {
+      try { return JSON.parse(fs.readFileSync(CONFIRM_FILE, 'utf8')); }
+      catch { return { mode: 'off' }; }
+    };
+    const writeCfg = (c) => { ensureHome(); fs.writeFileSync(CONFIRM_FILE, JSON.stringify(c, null, 2), { mode: 0o600 }); };
+    const cfg = readCfg();
+
+    if (sub === 'on') {
+      cfg.mode = 'sensitive';
+      writeCfg(cfg);
+      console.log('✅ 敏感动作确认闸已开启。agent 每次删除/发布/提交/转账前都要你点头。');
+      console.log('   （付款本来就会弹窗，和这个开关无关，始终生效。）');
+    } else if (sub === 'off') {
+      cfg.mode = 'off';
+      writeCfg(cfg);
+      console.log('⚠️  敏感动作确认闸已关闭。agent 可直接执行删除/发布/提交（付款仍会弹窗）。');
+    } else {
+      const on = cfg.mode === 'sensitive';
+      console.log(`敏感动作确认闸：${on ? '🟢 已开启（删/发/提交/转账都要点头）' : '⚪ 已关闭（只有付款弹窗）'}`);
+      console.log('\n用法：');
+      console.log('  lingee-chrome confirm on    开启：删除/发布/提交/转账前都要用户确认');
+      console.log('  lingee-chrome confirm off   关闭：恢复原版行为（只有付款弹窗）');
+    }
+    break;
+  }
+
   default:
     console.log(`lingee-chrome — 让任何 AI agent 操控你自己的 Chrome
 
@@ -180,6 +211,7 @@ switch (cmd) {
   lingee-chrome audit [-n 30]  看最近的浏览器操作记录
   lingee-chrome audit --stats [--days 7]   真实 agent 的用法统计：回合数、哪类调用最多、在哪儿浪费
   lingee-chrome allow [on|off|add|remove]  站点白名单：开启后 agent 只能操作名单内的站（带权限闸门）
+  lingee-chrome confirm [on|off]  敏感动作确认闸：开启后 agent 删除/发布/提交/转账前先问你（付款始终弹窗）
   lingee-chrome bridge --foreground   前台跑桥（调试用）
   lingee-chrome install --dry-run     只看会改哪些配置，不写
 

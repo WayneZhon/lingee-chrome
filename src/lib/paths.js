@@ -9,6 +9,7 @@ export const BRIDGE_FILE = path.join(HOME, 'bridge.json');
 export const LOCK_FILE = path.join(HOME, 'bridge.lock');
 export const AUDIT_FILE = path.join(HOME, 'audit.jsonl');
 export const ALLOWLIST_FILE = path.join(HOME, 'allowlist.json');
+export const CONFIRM_FILE = path.join(HOME, 'confirm.json');
 export const LOG_FILE = path.join(HOME, 'bridge.log');
 
 export const DEFAULT_PORT = 8899;
