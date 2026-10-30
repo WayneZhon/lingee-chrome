@@ -148,7 +148,7 @@ claude mcp add huashu-chrome -- npx -y huashu-chrome mcp --client claude-code
 
 **Codex CLI** — `~/.codex/config.toml`
 ```toml
-[mcp_servers.huashu-chrome]
+[mcp_servers.lingee-chrome]
 command = "npx"
 args = ["-y", "huashu-chrome", "mcp", "--client", "codex"]
 ```
@@ -270,7 +270,7 @@ act 停在第 4 步 3/4：
   大麦、即刻、腾讯文档、Ollama，以及两个 canvas 游戏（`sudoku.com` / `flappybird.io`，
   它们是「棋盘不在 DOM 里」这类页面的样板）。已验证的接口名、墙、坑，
   每条都标了实测日期。升级版本就拿到新经验。
-- **本机经验**：`~/.huashu-chrome/learnings/`，agent 每次干活学到的新规律
+- **本机经验**：`~/.lingee-chrome/learnings/`，agent 每次干活学到的新规律
   自己存进去（新站摸清了门路、老站发现记录过时了），永远不会被升级覆盖。
   全在你自己的磁盘上，不上传。
 
@@ -279,7 +279,7 @@ agent 开工前查一次（`learnings {domain}`），收工时把非显而易见
 环境不一样，所以工具返回的每一份经验都带着同一句话：与页面实际不符时，
 以实际为准，然后把记录改对。查不到经验也不阻塞，按通用策略干就是了。
 
-摸清了一个新站？欢迎把 `~/.huashu-chrome/learnings/` 里的文件提 PR 到
+摸清了一个新站？欢迎把 `~/.lingee-chrome/learnings/` 里的文件提 PR 到
 [`docs/经验/`](docs/经验/)，让所有用户受益。**提之前记得先看一遍有没有把你自己的
 账号、行程、订单号写进去**——那个目录是 agent 自动写的，它不知道哪些字不该出门。
 
@@ -393,7 +393,7 @@ offscreen 万一建不起来，扩展不能整个哑掉。
    抬进模型的注意力里。
 2. **敏感动作不自动升级**——提交 / 支付 / 删除 / 发布这类目标，即使普通事件毫无效果，
    也不会自动改用真实事件重试，避免重复执行。正则 + DOM 特征，不问模型。
-3. **全量审计**——每条命令落 `~/.huashu-chrome/audit.jsonl`，输入的文本做脱敏
+3. **全量审计**——每条命令落 `~/.lingee-chrome/audit.jsonl`，输入的文本做脱敏
    （密码按输入框类型判断，跟长度无关）。`npx huashu-chrome audit` 随时查。
 4. **连接边界**——桥只接受 `chrome-extension://` 来源的扩展连接，网页想连桥直接被拒；
    Node 侧 agent 走随桥启动轮换的 token。
@@ -559,12 +559,12 @@ Four ideas that make it different from a headless-browser MCP:
   stop on the first no-op.
 - **Learnings compound.** Site knowledge ships with the package (`docs/经验/`, ~20 sites with
   verified endpoints, walls and dead ends, each dated) and the agent writes new findings to
-  `~/.huashu-chrome/learnings/` on your own disk, never uploaded. One Feishu Bitable task took 281
+  `~/.lingee-chrome/learnings/` on your own disk, never uploaded. One Feishu Bitable task took 281
   calls and 54 minutes to figure out cold; under 10 calls the second time.
 - **Safety lives outside the model.** Page text is demoted to `<page-content untrusted>`; sensitive
   targets (submit / pay / delete / publish) never auto-retry with trusted events; a payment
   confirmation card lives *in the extension*, where the agent has no parameter to skip it; every
-  command is audited to `~/.huashu-chrome/audit.jsonl` with credentials redacted by key name.
+  command is audited to `~/.lingee-chrome/audit.jsonl` with credentials redacted by key name.
   What is **not** done is stated plainly in the 安全 section — money is gated, deletion is not.
 
 You can also see it working: controlled tabs join a colored tab group, the page gets a matching

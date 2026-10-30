@@ -81,7 +81,7 @@ export function startBridge({ port = DEFAULT_PORT, token = newToken(), writeInfo
   // 话术和 doctor、mcp-server 的 hint 保持一致：首选动作是扩展弹窗里的「重连」，
   // 不是去 chrome://extensions——插件从来没消失过，去那儿只会把人引向「重装」。
   const NO_EXT_MSG = '扩展没连上桥。桥已经替你等过一轮'
-    + `（最多 ${WAIT_MAX / 1000}s），它还没回来。让用户点一下浏览器工具栏的 huashu-chrome 图标 → 「重连」`
+    + `（最多 ${WAIT_MAX / 1000}s），它还没回来。让用户点一下浏览器工具栏的 lingee-chrome 图标 → 「重连」`
     + '（插件没消失，只是这条连接断了）；Chrome 没开就先开；改过扩展代码才需要去 chrome://extensions 重载。';
 
   let lastActivity = Date.now();

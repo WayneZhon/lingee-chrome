@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// huashu-chrome CLI
+// lingee-chrome CLI
 //   mcp      给 agent 用的 MCP server（stdio）。agent 配置里填的就是这条。
 //   bridge   桥 daemon。正常不用手动跑，mcp 会自己拉起。
 //   doctor   诊断：这类产品的头号支持成本就是「连不上」，把排查做成一条命令。
@@ -34,8 +34,8 @@ switch (cmd) {
   }
 
   // 手动发一条命令，开发和排错时不用绕道 agent
-  //   huashu-chrome call snapshot
-  //   huashu-chrome call tabs '{"action":"new","url":"https://example.com"}'
+  //   lingee-chrome call snapshot
+  //   lingee-chrome call tabs '{"action":"new","url":"https://example.com"}'
   case 'call': {
     // learnings 是纯本地读写，不需要桥和浏览器
     if (argv[1] === 'learnings') {
@@ -123,16 +123,16 @@ switch (cmd) {
   }
 
   default:
-    console.log(`huashu-chrome — 让任何 AI agent 操控你自己的 Chrome
+    console.log(`lingee-chrome — 让任何 AI agent 操控你自己的 Chrome
 
-  huashu-chrome install        一键安装：自动配好所有 agent + 引导装扩展
-  huashu-chrome mcp            启动 MCP server（agent 配置里填这条，install 会自动写）
-  huashu-chrome doctor         诊断连接问题
-  huashu-chrome extension      打印扩展加载步骤
-  huashu-chrome audit [-n 30]  看最近的浏览器操作记录
-  huashu-chrome audit --stats [--days 7]   真实 agent 的用法统计：回合数、哪类调用最多、在哪儿浪费
-  huashu-chrome bridge --foreground   前台跑桥（调试用）
-  huashu-chrome install --dry-run     只看会改哪些配置，不写
+  lingee-chrome install        一键安装：自动配好所有 agent + 引导装扩展
+  lingee-chrome mcp            启动 MCP server（agent 配置里填这条，install 会自动写）
+  lingee-chrome doctor         诊断连接问题
+  lingee-chrome extension      打印扩展加载步骤
+  lingee-chrome audit [-n 30]  看最近的浏览器操作记录
+  lingee-chrome audit --stats [--days 7]   真实 agent 的用法统计：回合数、哪类调用最多、在哪儿浪费
+  lingee-chrome bridge --foreground   前台跑桥（调试用）
+  lingee-chrome install --dry-run     只看会改哪些配置，不写
 
 配置目录 ${HOME}`);
 }
@@ -141,10 +141,10 @@ async function doctor() {
   const ok = (s) => console.log(`  ✅ ${s}`);
   const bad = (s, fix) => { console.log(`  ❌ ${s}`); if (fix) console.log(`     → ${fix}`); };
 
-  console.log('\nhuashu-chrome 体检\n');
+  console.log('\nlingee-chrome 体检\n');
 
   console.log('配置目录');
-  fs.existsSync(HOME) ? ok(HOME) : bad(`${HOME} 不存在`, '跑一次 `huashu-chrome mcp` 会自动创建');
+  fs.existsSync(HOME) ? ok(HOME) : bad(`${HOME} 不存在`, '跑一次 `lingee-chrome mcp` 会自动创建');
 
   console.log('\n桥');
   let info = readBridgeInfo();
@@ -193,7 +193,7 @@ async function doctor() {
         // 「去浏览器点开任意页面」对半开连接是错的——半开时 offscreen 自认为在线，
         // 不会因为你开了个页面就重连；「去 chrome://extensions」则把人引向重装。
         bad('Chrome 扩展这会儿没连着桥',
-          '点浏览器工具栏的 huashu-chrome 图标 → 「重连」，几秒后再跑一次 doctor（插件没消失，只是连接断了）。'
+          '点浏览器工具栏的 lingee-chrome 图标 → 「重连」，几秒后再跑一次 doctor（插件没消失，只是连接断了）。'
           + '图标都没有？Chrome 没开、扩展没装或被停用——按下面「扩展」一栏的目录去装。');
       }
     }
@@ -203,7 +203,7 @@ async function doctor() {
   const mf = path.join(ROOT, 'extension', 'manifest.json');
   fs.existsSync(mf)
     ? ok(`${path.join(ROOT, 'extension')}${alive ? '' : ''}（这只说明文件在；Chrome 是否从这里加载了，看上面「扩展在线」那行）`)
-    : bad('扩展目录缺失', '重装 huashu-chrome');
+    : bad('扩展目录缺失', '重装 lingee-chrome');
 
   // bridge.log 里最近一次断连：用户体感的「插件消失」到底是什么时候、断了多久
   try {
@@ -216,7 +216,7 @@ async function doctor() {
     if (lastDown) console.log(`  ·  最近一次断开 ${lastDown}${lastUp ? `，最近一次连上 ${lastUp}` : '，之后没再连上'}（bridge.log，只有时分秒）`);
   } catch { /* 没日志就没日志 */ }
 
-  // 经验库里 agent 记下的「huashu-chrome 的 X 不生效」——产品 bug 住在经验库里，
+  // 经验库里 agent 记下的「lingee-chrome 的 X 不生效」——产品 bug 住在经验库里，
   // 没有这一栏就永远回不到开发者手上（screenshot 的 savePath 就是这么躺了一周的）
   try {
     const { LEARNINGS_DIR } = await import('./lib/learnings.js');
@@ -224,7 +224,7 @@ async function doctor() {
     for (const f of fs.readdirSync(LEARNINGS_DIR)) {
       if (!f.endsWith('.md')) continue;
       for (const line of fs.readFileSync(path.join(LEARNINGS_DIR, f), 'utf8').split('\n')) {
-        if (/huashu-chrome/.test(line) && /不生效|无效|没实现|不工作|静默|bug|坏了|绕过|绕法/i.test(line)) hits.push(`${f}: ${line.trim().slice(0, 110)}`);
+        if (/lingee-chrome/.test(line) && /不生效|无效|没实现|不工作|静默|bug|坏了|绕过|绕法/i.test(line)) hits.push(`${f}: ${line.trim().slice(0, 110)}`);
         if (hits.length >= 6) break;
       }
     }
@@ -236,7 +236,7 @@ async function doctor() {
 
   console.log('\n日志');
   console.log(`  桥日志   ${LOG_FILE}`);
-  console.log(`  操作审计 ${AUDIT_FILE}   （huashu-chrome audit 查看）`);
+  console.log(`  操作审计 ${AUDIT_FILE}   （lingee-chrome audit 查看）`);
   console.log('');
 }
 
@@ -358,7 +358,7 @@ function printExtension() {
 
         加 --reveal 会直接在访达 / 资源管理器里选中它，拖过去就行。
 
-装好后扩展会自动连桥。跑 huashu-chrome doctor 应该看到「Chrome 扩展在线」
+装好后扩展会自动连桥。跑 lingee-chrome doctor 应该看到「Chrome 扩展在线」
 `);
 }
 

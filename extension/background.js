@@ -132,8 +132,8 @@ function noteBridgeVersion(v) {
   const level = compat({ ext: mine, cli: v });
   bridgeMismatch = (level === 'same' || level === 'patch') ? '' : v;
   chrome.action.setTitle({ title: bridgeMismatch
-    ? `huashu-chrome：${compatNote(level, { ext: mine, cli: v })}`
-    : 'huashu-chrome' });
+    ? `lingee-chrome：${compatNote(level, { ext: mine, cli: v })}`
+    : 'lingee-chrome' });
   setBadge(true);
 }
 
@@ -2139,7 +2139,7 @@ const HANDLERS = {
   // 这条路由浏览器原生下载，不进内存、不进 context，还自带断点和大文件支持。
   // saveAs:false 是关键：不弹系统保存对话框（那是扩展够不着的东西）。
   async download(p) {
-    const filename = p.filename || `huashu-chrome/${Date.now()}-${(p.url.split('/').pop() || 'file').split('?')[0].slice(0, 60)}`;
+    const filename = p.filename || `lingee-chrome/${Date.now()}-${(p.url.split('/').pop() || 'file').split('?')[0].slice(0, 60)}`;
     const dlId = await chrome.downloads.download({ url: p.url, filename, conflictAction: 'uniquify', saveAs: false });
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -2585,7 +2585,7 @@ const HANDLERS = {
     chrome.notifications?.create(`hc-ask-${Date.now()}`, {
       type: 'basic',
       iconUrl: 'icons/icon128.png',
-      title: p.title || 'huashu-chrome 需要你搭把手',
+      title: p.title || 'lingee-chrome 需要你搭把手',
       message: String(p.prompt || '').slice(0, 180),
       priority: 2,
     }, () => void chrome.runtime.lastError);
