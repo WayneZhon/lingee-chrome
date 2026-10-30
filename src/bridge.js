@@ -12,6 +12,8 @@ import { DEFAULT_PORT, writeBridgeInfo, newToken, tokenEquals, audit, ensureHome
 import { VERSION } from './lib/version.js';
 // 纯字符串判定、不碰 chrome API，所以桥这边直接复用，不再抄一份
 import { scrubProse } from '../extension/redact.js';
+// 站点白名单的纯裁决逻辑（可单测）。桥这边只负责读文件，裁决交给它。
+import { decideSite } from './lib/allowlist.js';
 
 export { VERSION };
 
@@ -388,26 +390,21 @@ export function startBridge({ port = DEFAULT_PORT, token = newToken(), writeInfo
     if (msg.type === 'event' && extensions.has(ws)) broadcast(msg);
   }
 
-  // 站点白名单：默认拒绝。裁决在这里做，agent 够不着。
-  // allowlist.json 不存在 = 尚未配置 = 全放行（P0 开发期），P1 改为默认拒绝。
+  // 站点白名单：裁决在这里做，agent 够不着。
+  // 默认放行、主动开启：allowlist.json 不存在或 mode≠allowlist = 全放行（不打断升级）；
+  // 用户把 mode 设成 'allowlist' 后才进入"默认拒绝、只许名单内"。裁决逻辑在 lib/allowlist.js（可单测）。
   function checkSite(msg) {
     const url = msg.params?.url;
     if (!url) return null;
-    let list;
+    let list = null;
     try {
       list = JSON.parse(fs.readFileSync(ALLOWLIST_FILE, 'utf8'));
     } catch {
-      return null;
+      list = null; // 文件不存在/损坏 = 未配置 = 放行
     }
-    if (list.mode !== 'allowlist') return null;
-    let host;
-    try {
-      host = new URL(url).hostname;
-    } catch {
-      return null;
-    }
-    const ok = (list.sites || []).some((s) => host === s || host.endsWith('.' + s));
-    return ok ? null : { code: 'SITE_NOT_ALLOWED', message: `${host} 不在授权站点列表里，请在扩展弹窗里授权` };
+    const gate = decideSite(url, list);
+    if (gate) audit({ ev: 'blocked_site', host: gate.message, client: msg.client });
+    return gate;
   }
 
   function send(ws, obj) {

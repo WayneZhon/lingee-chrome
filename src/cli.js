@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { readBridgeInfo, DEFAULT_PORT, HOME, AUDIT_FILE, LOG_FILE } from './lib/paths.js';
+import { readBridgeInfo, DEFAULT_PORT, HOME, AUDIT_FILE, LOG_FILE, ALLOWLIST_FILE, ensureHome } from './lib/paths.js';
 import { VERSION } from './lib/version.js';
 import { compat, compatNote } from '../extension/compat.js';
 
@@ -122,6 +122,54 @@ switch (cmd) {
     break;
   }
 
+  case 'allow': {
+    // 站点白名单管理。白名单是 lingee-chrome 的"带权限"闸门：
+    //   开启后 agent 只能导航到名单内的站，其余一律拦（裁决在桥里，agent 够不着）。
+    //   默认关闭（全放行），要用户主动 `allow on` 才生效。
+    const sub = argv[1];
+    const readList = () => {
+      try { return JSON.parse(fs.readFileSync(ALLOWLIST_FILE, 'utf8')); }
+      catch { return { mode: 'off', sites: [] }; }
+    };
+    const writeList = (l) => { ensureHome(); fs.writeFileSync(ALLOWLIST_FILE, JSON.stringify(l, null, 2), { mode: 0o600 }); };
+    const list = readList();
+    if (!Array.isArray(list.sites)) list.sites = [];
+
+    if (sub === 'on') {
+      list.mode = 'allowlist';
+      writeList(list);
+      console.log(`✅ 白名单已开启（严格模式）。agent 现在只能操作名单内的 ${list.sites.length} 个站。`);
+      if (!list.sites.length) console.log('   名单还是空的——先 `lingee-chrome allow add <域名>` 加站，否则 agent 哪都去不了。');
+    } else if (sub === 'off') {
+      list.mode = 'off';
+      writeList(list);
+      console.log('⚠️  白名单已关闭。agent 可操作任意站点（全放行）。');
+    } else if (sub === 'add' && argv[2]) {
+      const host = argv[2].replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+      if (!list.sites.includes(host)) list.sites.push(host);
+      writeList(list);
+      console.log(`✅ 已加入白名单：${host}（含其所有子域）`);
+      if (list.mode !== 'allowlist') console.log('   提示：白名单还没开启，`lingee-chrome allow on` 才会生效。');
+    } else if (sub === 'remove' && argv[2]) {
+      const host = argv[2].replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+      list.sites = list.sites.filter((s) => s !== host);
+      writeList(list);
+      console.log(`✅ 已移出白名单：${host}`);
+    } else {
+      // 默认：显示当前状态
+      const on = list.mode === 'allowlist';
+      console.log(`站点白名单：${on ? '🟢 已开启（严格模式，只许名单内）' : '⚪ 已关闭（全放行）'}`);
+      console.log(`授权站点（${list.sites.length}）：${list.sites.length ? '' : '（空）'}`);
+      for (const s of list.sites) console.log(`  · ${s}`);
+      console.log('\n用法：');
+      console.log('  lingee-chrome allow on              开启白名单（严格模式）');
+      console.log('  lingee-chrome allow off             关闭白名单（全放行）');
+      console.log('  lingee-chrome allow add <域名>      授权一个站（含子域）');
+      console.log('  lingee-chrome allow remove <域名>   取消授权');
+    }
+    break;
+  }
+
   default:
     console.log(`lingee-chrome — 让任何 AI agent 操控你自己的 Chrome
 
@@ -131,6 +179,7 @@ switch (cmd) {
   lingee-chrome extension      打印扩展加载步骤
   lingee-chrome audit [-n 30]  看最近的浏览器操作记录
   lingee-chrome audit --stats [--days 7]   真实 agent 的用法统计：回合数、哪类调用最多、在哪儿浪费
+  lingee-chrome allow [on|off|add|remove]  站点白名单：开启后 agent 只能操作名单内的站（带权限闸门）
   lingee-chrome bridge --foreground   前台跑桥（调试用）
   lingee-chrome install --dry-run     只看会改哪些配置，不写
 
