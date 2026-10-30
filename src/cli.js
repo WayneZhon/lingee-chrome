@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { readBridgeInfo, DEFAULT_PORT, HOME, AUDIT_FILE, LOG_FILE, ALLOWLIST_FILE, CONFIRM_FILE, ensureHome } from './lib/paths.js';
+import { readBridgeInfo, DEFAULT_PORT, HOME, AUDIT_FILE, LOG_FILE, ALLOWLIST_FILE, CONFIRM_FILE, REPORT_FILE, ensureHome, audit } from './lib/paths.js';
 import { VERSION } from './lib/version.js';
 import { compat, compatNote } from '../extension/compat.js';
 
@@ -201,6 +201,56 @@ switch (cmd) {
     break;
   }
 
+  case 'report': {
+    // 审计上报（第三刀）。开启后，每条审计事件除了写本地 audit.jsonl，还会异步
+    //   POST 到合规系统。默认关闭（没配 url 不上报），上报失败不影响浏览器操作。
+    //   本地日志永远先写，上报只是"额外再发一份"。
+    const sub = argv[1];
+    const readCfg = () => {
+      try { return JSON.parse(fs.readFileSync(REPORT_FILE, 'utf8')); }
+      catch { return { enabled: false, url: '', token: '' }; }
+    };
+    const writeCfg = (c) => { ensureHome(); fs.writeFileSync(REPORT_FILE, JSON.stringify(c, null, 2), { mode: 0o600 }); };
+    const cfg = readCfg();
+
+    if (sub === 'on' && argv[2]) {
+      const url = argv[2];
+      if (!/^https?:\/\//i.test(url)) {
+        console.log('❌ 地址要以 http:// 或 https:// 开头，比如 https://compliance.kingdee.com/audit');
+        break;
+      }
+      cfg.enabled = true;
+      cfg.url = url;
+      const tok = flag('--token', '');
+      if (tok) cfg.token = tok;
+      writeCfg(cfg);
+      console.log(`✅ 审计上报已开启。每条操作会写本地日志，并上报到：${url}`);
+      console.log(`   ${cfg.token ? '已配 token（Bearer 鉴权）' : '未配 token（合规系统若需鉴权，用 --token <值> 再开一次）'}`);
+    } else if (sub === 'off') {
+      cfg.enabled = false;
+      writeCfg(cfg);
+      console.log('⚠️  审计上报已关闭。操作仍会写本地日志，但不再往合规系统发。');
+    } else if (sub === 'test') {
+      // 发一条测试事件，验证合规系统能收到。
+      if (!cfg.enabled || !cfg.url) { console.log('还没开启上报，先 `lingee-chrome report on <地址>`。'); break; }
+      audit({ ev: 'report_test', note: 'lingee-chrome 上报连通性测试' });
+      console.log(`📨 已向 ${cfg.url} 发送一条测试事件（report_test）。到合规系统看有没有收到。`);
+    } else {
+      const on = cfg.enabled === true && cfg.url;
+      console.log(`审计上报：${on ? '🟢 已开启' : '⚪ 已关闭'}`);
+      if (on) {
+        console.log(`  上报地址：${cfg.url}`);
+        console.log(`  鉴权：${cfg.token ? 'Bearer token（已配）' : '无 token'}`);
+      }
+      console.log('\n用法：');
+      console.log('  lingee-chrome report on <地址>          开启上报，日志发到这个合规系统地址');
+      console.log('  lingee-chrome report on <地址> --token <值>   同上，带 Bearer 鉴权');
+      console.log('  lingee-chrome report off                关闭上报（本地日志仍写）');
+      console.log('  lingee-chrome report test               发一条测试事件，验证能收到');
+    }
+    break;
+  }
+
   default:
     console.log(`lingee-chrome — 让任何 AI agent 操控你自己的 Chrome
 
@@ -212,6 +262,7 @@ switch (cmd) {
   lingee-chrome audit --stats [--days 7]   真实 agent 的用法统计：回合数、哪类调用最多、在哪儿浪费
   lingee-chrome allow [on|off|add|remove]  站点白名单：开启后 agent 只能操作名单内的站（带权限闸门）
   lingee-chrome confirm [on|off]  敏感动作确认闸：开启后 agent 删除/发布/提交/转账前先问你（付款始终弹窗）
+  lingee-chrome report [on|off]   审计上报：开启后每条操作日志额外发一份到合规系统（本地日志始终写）
   lingee-chrome bridge --foreground   前台跑桥（调试用）
   lingee-chrome install --dry-run     只看会改哪些配置，不写
 
