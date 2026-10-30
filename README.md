@@ -1,42 +1,62 @@
 <div align="center">
 
-# huashu-chrome
+# lingee-chrome
 
-<img src="https://raw.githubusercontent.com/alchaincyf/huashu-chrome/master/media/architecture.png" alt="系统原理图：一条命令穿过五个器官——npm 包 → CLI → MCP server → 本地桥 → Chrome 扩展，最后落在你真实浏览器的真实按钮上" width="100%">
+**让 AI 帮你操作浏览器——用你自己已经登录好的那个 Chrome。**
 
-> *「工具返回『已点击』不算数，页面真的动了才算。」*
+<sub>基于 [huashu-chrome](https://github.com/alchaincyf/huashu-chrome)（MIT）二次开发，增加企业级权限管控。</sub>
 
-[![npm](https://img.shields.io/npm/v/huashu-chrome?color=cb3837&logo=npm)](https://www.npmjs.com/package/huashu-chrome)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Stars](https://img.shields.io/github/stars/alchaincyf/huashu-chrome?style=social)](https://github.com/alchaincyf/huashu-chrome)
-[![Node](https://img.shields.io/badge/Node-%E2%89%A520-339933?logo=node.js&logoColor=white)](#安装)
-
-<br>
-
-**让任何 AI agent 操控你自己的 Chrome——带着你全部的登录态。**
-
-<sub>一个 MCP server + 一个 Chrome 扩展，22 个浏览器工具。Claude Code、Codex CLI、Cursor、Gemini CLI、Cline、Windsurf 通用。</sub>
-
-<br>
-
-[看效果](#看效果) · [安装](#安装) · [22 个工具](#工具按网页只有三种信息载体来分) · [经验回流](#越用越快经验回流) · [安全](#安全) · [排错](#排错)
 
 </div>
 
 ---
 
+## 一句话说清这是什么
+
+你平时上网，要自己点鼠标、自己填表。**lingee-chrome 让 AI 替你点、替你填**——而且用的就是你此刻这个浏览器里的身份：你登录过的系统，它直接就能进，不用重新登录、不用输验证码、不用找 IT 要接口。
+
+举几个例子，你对 AI 说一句话，它就在浏览器里做完：
+
 ```
-你：帮我把这份 CSV 里的 30 条客户信息录进 CRM
-agent：（打开你已登录的 CRM，逐条填表提交）
+「把这份 Excel 里的 30 条客户，逐条录进 CRM」
+「查一下这个客户最近的订单状态」
+「把这张报表导出来发给我」
 ```
 
-不用 API key，不用重新登录，不用处理验证码——**用的就是你此刻这个浏览器里的身份**。
+## 它和市面上的"AI 浏览器"有什么不同
 
-「npm 包？插件？CLI？还是 MCP？」——都是。它们是同一个产品的五个器官：npm 包是分发载体，
-CLI 是入口（install / mcp / doctor），MCP server 是 agent 的接口，本地桥是 127.0.0.1 上的
-常驻路由器，Chrome 扩展是手。上图就是一条命令穿过它们的全程。
+大部分 AI 浏览器工具，要么只给自家 App 用，要么给你开一个**空白的、没登录的**浏览器——于是要查公司内部系统，它进不去。
 
-**图解版完整说明书 → [huasheng.ai/huashu-chrome](https://huasheng.ai/huashu-chrome/)**
+lingee-chrome 用的是**你本来就开着、已经登录好的 Chrome**。这就是它的核心价值：内部系统、后台、OA，你能看的，AI 就能帮你操作。
+
+## 比原版多了什么：企业级权限管控
+
+原版（huashu-chrome）是个很强的开源工具，但它**默认全放行**——AI 想操作哪个网站都行。放进公司用，这不够安全。lingee-chrome 补上了一道闸门：
+
+### 🔒 站点白名单（已上线）
+
+只允许 AI 操作你指定的网站，其余一律拦住。比如只许它碰金蝶内部系统：
+
+```bash
+lingee-chrome allow add kdm.lingee.com   # 授权一个内部站（含所有子域）
+lingee-chrome allow add kingdee.com
+lingee-chrome allow on                   # 开启：从此 AI 只能碰这两个站
+lingee-chrome allow                      # 随时查看当前授权了哪些站
+```
+
+关掉就恢复全放行（`lingee-chrome allow off`）。**默认是关的**——不主动开启，行为和原版完全一样，升级不会让你的 AI 突然停摆。
+
+这道闸做在 AI 够不着的地方：就算有人用话术骗 AI（俗称 prompt injection），它也改不动一个自己调不到的开关。
+
+### 规划中
+
+- **删除 / 发布 / 提交前弹窗确认**（现在只有付款会弹窗）
+- **操作日志上报到合规系统**（现在日志只存在本地）
+
+---
+
+> 以下是继承自原版的完整技术说明，面向开发者。普通使用者看到这里就够了。
 
 ---
 
